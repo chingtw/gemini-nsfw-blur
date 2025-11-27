@@ -1,6 +1,8 @@
 # 🛡️ Gemini Sidebar NSFW Blur
 
-![Demo](https://drive.google.com/file/d/1FwShrujDYPGQKzZhIyJpfvMng10u7xUW/view?usp=sharing "Demo")
+![Demo](https://drive.google.com/uc?export=view&id=1FwShrujDYPGQKzZhIyJpfvMng10u7xUW "Demo")
+
+
 
 這是一個專為 **Google Gemini** 網頁版設計的瀏覽器擴充功能（Chrome / Edge）。
 
