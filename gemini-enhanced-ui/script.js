@@ -1,5 +1,5 @@
 // =========================================
-// Gemini Extension: Navigation + NSFW Toggle (V16 Strict Menu)
+// Gemini Extension: Navigation + NSFW Toggle (V21 Context Menu Fix)
 // =========================================
 
 (function() {
@@ -26,9 +26,10 @@
         btn.className = 'gemini-nsfw-switch-item mat-mdc-menu-item'; 
         btn.setAttribute('role', 'menuitem');
         
-        const iconSvg = isNsfwEnabled 
-            ? `<svg class="gemini-nsfw-status-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>` 
-            : `<svg class="gemini-nsfw-status-icon off" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>`; 
+        // 使用原生 mat-icon + 打勾樣式
+        const iconHtml = isNsfwEnabled 
+            ? `<mat-icon role="img" class="mat-icon notranslate gds-icon-l google-symbols mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font" data-mat-icon-name="check_circle" style="color: var(--md-sys-color-primary);">check_circle</mat-icon>` 
+            : ``; 
 
         btn.innerHTML = `
             <div class="gemini-nsfw-switch-content">
@@ -37,7 +38,7 @@
                 </svg>
                 <span>NSFW</span>
             </div>
-            ${iconSvg}
+            ${iconHtml}
         `;
 
         btn.onclick = (e) => {
@@ -53,40 +54,43 @@
         return btn;
     }
 
-    // ★★★ V16 修正：精準辨識主選單 ★★★
+    // 使用關鍵字辨識
     const menuObserver = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
-                // 檢查是否為選單容器
                 if (node.nodeType === 1 && (node.classList.contains('mat-mdc-menu-content') || node.querySelector('.mat-mdc-menu-content'))) {
                     
                     const menuContent = node.classList.contains('mat-mdc-menu-content') ? node : node.querySelector('.mat-mdc-menu-content');
                     
                     if (menuContent && !menuContent.querySelector('.gemini-nsfw-switch-item')) {
                         
-                        // --- 判斷邏輯 ---
-                        // 1. 計算選項數量：主選單通常很大 (至少 6 個選項)
-                        //    子選單 (說明、主題) 通常只有 3-4 個
-                        const itemCount = menuContent.children.length;
+                        // 取得選單內的所有文字內容
+                        const menuText = menuContent.textContent || "";
                         
-                        // 2. 檢查是否有「下一層選單的觸發器」：
-                        //    主選單會有「主題 >」、「說明 >」這種帶箭頭的按鈕 (aria-haspopup="menu")
-                        //    子選單已經是底層，不會有這個
-                        const hasSubmenuTrigger = menuContent.querySelector('[aria-haspopup="menu"]');
+                        // 核心判斷：關鍵字
+                        // 主題選單一定包含 "深色" (Dark) 和 "淺色" (Light)
+                        // 我們同時檢查中文和英文，確保不同語言設定下也能運作
+                        const hasDarkOption = menuText.includes('深色') || menuText.includes('Dark');
+                        const hasLightOption = menuText.includes('淺色') || menuText.includes('Light');
+                        const hasSystemOption = menuText.includes('系統') || menuText.includes('System');
 
-                        // 條件：數量大於 5 個，或者 包含子選單觸發器
-                        // (移除了 hasLinks 判斷，因為說明選單也有連結，會導致誤判)
-                        if (itemCount > 5 || hasSubmenuTrigger) {
-                            console.log(`Gemini Extension: Main Menu detected (Items: ${itemCount}), injecting switch...`);
+                        // 只有當選單同時包含「深色」與「淺色」選項時，才認定它是主題選單
+                        // 這能完美排除「模型選擇器」(只有 Pro/Flash) 和「右鍵選單」(只有刪除/釘選)
+                        const isThemeMenu = (hasDarkOption && hasLightOption) || (hasSystemOption && hasDarkOption);
+
+                        if (isThemeMenu) {
+                            console.log(`Gemini Extension: Theme Menu detected (Text Match), appending switch...`);
                             
                             const divider = document.createElement('div');
                             divider.style.borderTop = '1px solid var(--md-sys-color-outline-variant)';
                             divider.style.margin = '8px 0';
                             
-                            menuContent.insertBefore(divider, menuContent.firstChild);
-                            menuContent.insertBefore(createSwitchItem(), menuContent.firstChild);
+                            menuContent.appendChild(divider);
+                            menuContent.appendChild(createSwitchItem());
+                            
                         } else {
-                            console.log(`Gemini Extension: Sub-menu detected (Items: ${itemCount}), ignored.`);
+                            // 這會過濾掉 模型選單、右鍵選單、主選單
+                            // console.log(`Gemini Extension: Menu ignored (Not theme menu).`);
                         }
                     }
                 }
@@ -95,7 +99,6 @@
     });
 
     menuObserver.observe(document.body, { childList: true, subtree: true });
-
 
     // =====================================
     // Part 2: 目錄導航邏輯 (保持不變)

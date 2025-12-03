@@ -273,39 +273,57 @@ body.light-theme .gemini-toc-sidebar a:hover {
    Gemini NSFW Switch - 功能開關樣式
    ========================================= */
 
-/* 1. 當 Body 擁有 'nsfw-disabled' class 時，強制取消所有模糊與折疊 */
-body.nsfw-disabled my-stuff-recents-preview,
-body.nsfw-disabled library-item-card {
-    /* 還原高度 */
-    max-height: none !important;
+/* 1. 當 Body 擁有 'nsfw-disabled' class 時 (功能被關閉) */
+
+/* A. 側邊欄容器：平滑展開 */
+body.nsfw-disabled my-stuff-recents-preview {
+    /* 技巧：設定一個足夠大的高度 (2000px)，讓 CSS 有數值可以跑動畫 */
+    max-height: 2000px !important;
     min-height: auto !important;
-    /* 還原背景與圓角 */
+    
+    /* 移除背景色與圓角變化 */
     background-color: transparent !important;
-    border-radius: 12px !important; /* 保持原本 Gemini 的圓角 */
-    /* 還原游標 */
-    cursor: pointer !important;
-    /* 移除動畫 */
-    transition: none !important;
+    border-radius: 12px !important; /* 回復 Gemini 原本圓角 */
+    
+    cursor: default !important;
+    
+    /* ★ 關鍵動畫設定：讓高度和背景色平滑過渡 */
+    /* 0.6s 的時間讓它優雅地滑下來 */
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 0.4s ease !important;
 }
 
-/* 隱藏偽元素 (遮罩與進度條) */
-body.nsfw-disabled my-stuff-recents-preview::before,
+/* B. 圖片卡：單純移除游標 */
+body.nsfw-disabled library-item-card {
+    cursor: default !important;
+    /* 圖片卡原本就沒變高度，所以不需要 max-height 動畫 */
+}
+
+
+/* C. 遮罩 (::after) 與 進度條 (::before) 的淡出動畫 */
+/* 注意：這裡不使用 display: none，改用 opacity: 0 才能有淡出效果 */
 body.nsfw-disabled my-stuff-recents-preview::after,
-body.nsfw-disabled library-item-card::before,
-body.nsfw-disabled library-item-card::after {
-    display: none !important;
-    content: none !important;
+body.nsfw-disabled library-item-card::after,
+body.nsfw-disabled my-stuff-recents-preview::before,
+body.nsfw-disabled library-item-card::before {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important; /* 確保隱藏後點不到 */
+    
+    /* ★ 淡出動畫：0.3s 消失 */
+    transition: opacity 0.3s ease-out, visibility 0.3s !important;
 }
 
-/* 2. 注入到選單內的開關按鈕樣式 (模仿 Gemini 原生選單) */
+
+/* 2. 注入到選單內的開關按鈕樣式 (保持不變) */
 .gemini-nsfw-switch-item {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* 文字靠左，打勾靠右 */
+    justify-content: space-between; 
     
     width: 100%;
     min-height: 48px;
-    padding: 0 12px 0 16px; /* 依照 Material Design */
+    padding: 0 12px 0 16px; 
     box-sizing: border-box;
     
     background: transparent;
@@ -315,17 +333,16 @@ body.nsfw-disabled library-item-card::after {
     font-family: 'Google Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: var(--md-sys-color-on-surface); /* 跟隨主題文字色 */
+    color: var(--md-sys-color-on-surface); 
     text-align: left;
     
     transition: background-color 0.2s;
 }
 
 .gemini-nsfw-switch-item:hover {
-    background-color: var(--md-sys-color-surface-container-high); /* 跟隨主題 Hover 色 */
+    background-color: var(--md-sys-color-surface-container-high); 
 }
 
-/* 開關的文字與圖示容器 */
 .gemini-nsfw-switch-content {
     display: flex;
     align-items: center;
@@ -333,14 +350,12 @@ body.nsfw-disabled library-item-card::after {
     flex-grow: 1;
 }
 
-/* 狀態圖示 (Check Circle) */
 .gemini-nsfw-status-icon {
     width: 24px;
     height: 24px;
-    color: var(--md-sys-color-primary, #3586FE); /* 使用主題色 */
+    color: var(--md-sys-color-primary, #3586FE); 
 }
 
-/* 灰色圖示 (關閉狀態) */
 .gemini-nsfw-status-icon.off {
     color: var(--md-sys-color-on-surface-variant, #888);
 }
